@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  graphhopper:
+    build:
+      context: ./graphhopper
+      dockerfile: Dockerfile
+    container_name: graphhopper
+    ports:
+      - "8989:8989"
+    volumes:
+      - ./graphhopper:/graphhopper

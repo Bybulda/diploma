@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Интерактивная карта</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            position: absolute;
+            top: 0;
+            left: -400px;
+            width: 300px;
+            height: 100%;
+            background-color: #f4f4f4;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+            transition: left 0.3s ease;
+            z-index: 1001;
+            padding: 20px;
+        }
+
+        #sidebar.open {
+            left: 0;
+        }
+
+        #sidebar h2 {
+            margin-top: 0;
+        }
+
+        #sidebar-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Toggle Button */
+        #sidebar-toggle {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translate(-50%, -50%);
+            background-color: #1e90ff;
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1002;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+
+        #sidebar-toggle:hover {
+            background-color: #156ec0;
+        }
+
+        .map-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .map-controls button {
+            padding: 10px 15px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            background: #1e90ff;
+            color: white;
+            cursor: pointer;
+        }
+
+        .map-controls button:hover {
+            background: #156ec0;
+        }
+
+        .leaflet-control-attribution {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- Sidebar -->
+<div id="sidebar">
+    <div id="sidebar-close">×</div>
+    <h2>Маршруты</h2>
+    <div id="routeInfo">Выберите начальную и конечную точку на карте.</div>
+</div>
+
+<!-- Toggle Icon -->
+<div id="sidebar-toggle">≡</div>
+
+<div class="map-controls">
+    <button onclick="buildRoute()">Построить маршрут</button>
+    <button onclick="clearMap()">Очистить карту</button>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    const map = L.map('map').setView([55.7558, 37.6173], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    let routePoints = [];
+    let markerLayer = L.layerGroup().addTo(map);
+    let routeLayers = [];
+
+    map.on('click', e => {
+        if (routePoints.length < 2) {
+            routePoints.push([e.latlng.lat, e.latlng.lng]);
+            L.marker(e.latlng).addTo(markerLayer)
+                .bindPopup(routePoints.length === 1 ? "Начало" : "Конец")
+                .openPopup();
+        } else {
+            alert("Уже выбраны 2 точки. Очистите карту.");
+        }
+    });
+
+    function buildRoute() {
+        if (routePoints.length < 2) return alert("Нужно выбрать 2 точки.");
+        const [a, b] = routePoints;
+
+        fetch(`/route?lat1=${a[0]}&lon1=${a[1]}&lat2=${b[0]}&lon2=${b[1]}`)
+            .then(r => r.json())
+            .then(data => {
+                clearRoutes();
+                const info = [];
+                const colors = ['blue', 'green', 'orange'];
+
+                data.paths.forEach((p, i) => {
+                    const latlngs = p.points.coordinates.map(([lng, lat]) => [lat, lng]);
+                    const line = L.polyline(latlngs, { color: colors[i % 3] }).addTo(map);
+                    routeLayers.push(line);
+                    info.push(`Маршрут ${i+1}: ${(p.distance/1000).toFixed(2)} км, ${(p.time/60000).toFixed(1)} мин`);
+                });
+
+                document.getElementById('routeInfo').innerText = info.join('\n');
+                document.getElementById('sidebar').classList.add('open');
+            });
+    }
+
+    function clearRoutes() {
+        routeLayers.forEach(r => map.removeLayer(r));
+        routeLayers = [];
+    }
+
+    function clearMap() {
+        clearRoutes();
+        markerLayer.clearLayers();
+        routePoints = [];
+        document.getElementById('routeInfo').innerText = "Выберите начальную и конечную точку на карте.";
+    }
+
+    // Sidebar toggle
+    document.getElementById('sidebar-toggle').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.add('open');
+    });
+
+    document.getElementById('sidebar-close').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.remove('open');
+    });
+</script>
+
+</body>
+</html>
