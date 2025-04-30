@@ -8,7 +8,6 @@
         html, body {
             margin: 0;
             height: 100%;
-            width: 100%;
             overflow: hidden;
         }
 
@@ -17,66 +16,51 @@
             width: 100vw;
         }
 
-        /* Sidebar */
         #sidebar {
             position: absolute;
             top: 0;
-            left: -400px;
+            left: -400px; /* полностью скрыт */
             width: 300px;
             height: 100%;
             background-color: #f4f4f4;
             box-shadow: 2px 0 5px rgba(0,0,0,0.2);
-            transition: left 0.3s ease;
+            transition: left 0.3s ease-in-out;
             z-index: 1001;
             padding: 20px;
+            overflow-y: auto;
         }
 
         #sidebar.open {
             left: 0;
         }
 
-        #sidebar h2 {
-            margin-top: 0;
-        }
-
-        #sidebar-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        /* Toggle Button */
         #sidebar-toggle {
             position: absolute;
             top: 50%;
             left: 0;
-            transform: translate(-50%, -50%);
+            transform: translate(-10%, -50%);
             background-color: #1e90ff;
             color: white;
             padding: 10px;
-            border-radius: 50%;
+            border-radius: 0 5px 5px 0;
             cursor: pointer;
             z-index: 1002;
             box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            transition: left 0.3s ease-in-out;
         }
 
-        #sidebar-toggle:hover {
-            background-color: #156ec0;
+        #sidebar.open + #sidebar-toggle {
+            left: 300px;
         }
 
-        .map-controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            z-index: 1000;
+        .sidebar-controls {
+            margin-top: 20px;
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
 
-        .map-controls button {
+        .sidebar-controls button {
             padding: 10px 15px;
             font-size: 14px;
             border: none;
@@ -86,8 +70,23 @@
             cursor: pointer;
         }
 
-        .map-controls button:hover {
+        .sidebar-controls button:hover {
             background: #156ec0;
+        }
+
+        .route-entry {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 5px solid transparent;
+            cursor: pointer;
+            background: #fff;
+            border-radius: 4px;
+        }
+
+        .route-entry.active {
+            background-color: #e0f0ff;
+            border-left-color: #1e90ff;
+            font-weight: bold;
         }
 
         .leaflet-control-attribution {
@@ -99,20 +98,17 @@
 
 <div id="map"></div>
 
-<!-- Sidebar -->
 <div id="sidebar">
-    <div id="sidebar-close">×</div>
     <h2>Маршруты</h2>
-    <div id="routeInfo">Выберите начальную и конечную точку на карте.</div>
+    <div id="routeInfo">Выберите начальную и конечную точку.</div>
+    <div class="sidebar-controls">
+        <button onclick="buildRoute()">Построить маршрут</button>
+        <button onclick="clearMap()">Очистить карту</button>
+    </div>
 </div>
 
-<!-- Toggle Icon -->
+<!-- Кнопка вне #sidebar -->
 <div id="sidebar-toggle">≡</div>
-
-<div class="map-controls">
-    <button onclick="buildRoute()">Построить маршрут</button>
-    <button onclick="clearMap()">Очистить карту</button>
-</div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
@@ -122,8 +118,11 @@
     let routePoints = [];
     let markerLayer = L.layerGroup().addTo(map);
     let routeLayers = [];
+    let activeRouteIndex = -1;
 
     map.on('click', e => {
+        if (e.originalEvent.cancelBubble) return; // ⛔ не реагируем, если событие уже обработано
+
         if (routePoints.length < 2) {
             routePoints.push([e.latlng.lat, e.latlng.lng]);
             L.marker(e.latlng).addTo(markerLayer)
@@ -134,48 +133,95 @@
         }
     });
 
-    function buildRoute() {
-        if (routePoints.length < 2) return alert("Нужно выбрать 2 точки.");
-        const [a, b] = routePoints;
 
-        fetch(`/route?lat1=${a[0]}&lon1=${a[1]}&lat2=${b[0]}&lon2=${b[1]}`)
+
+    function buildRoute() {
+        if (routePoints.length < 2) {
+            alert("Выберите 2 точки на карте.");
+            return;
+        }
+
+        const [a, b] = routePoints;
+        const url = `/route?lat1=${a[0]}&lon1=${a[1]}&lat2=${b[0]}&lon2=${b[1]}` +
+            `&profile=car&points_encoded=false&algorithm=alternative_route` +
+            `&alternative_route.max_paths=3&alternative_route.max_weight_factor=2&alternative_route.max_share_factor=0.9`;
+
+        fetch(url)
             .then(r => r.json())
             .then(data => {
                 clearRoutes();
-                const info = [];
                 const colors = ['blue', 'green', 'orange'];
 
-                data.paths.forEach((p, i) => {
-                    const latlngs = p.points.coordinates.map(([lng, lat]) => [lat, lng]);
-                    const line = L.polyline(latlngs, { color: colors[i % 3] }).addTo(map);
-                    routeLayers.push(line);
-                    info.push(`Маршрут ${i+1}: ${(p.distance/1000).toFixed(2)} км, ${(p.time/60000).toFixed(1)} мин`);
+                data.paths.forEach((path, index) => {
+                    const latlngs = path.points.coordinates.map(([lng, lat]) => [lat, lng]);
+                    const polyline = L.polyline(latlngs, {
+                        color: colors[index % colors.length],
+                        weight: 5,
+                        opacity: 0.5
+                    }).addTo(map);
+
+                    // polyline.on('click', () => highlightRoute(index));
+                    polyline.on('click', (e) => {
+                        e.originalEvent.cancelBubble = true; // ⛔ отменяем всплытие события
+                        highlightRoute(index);
+                    });
+                    routeLayers.push(polyline);
+
+                    const routeDiv = document.createElement("div");
+                    routeDiv.className = "route-entry";
+                    routeDiv.textContent = `Маршрут ${index + 1}: ${(path.distance / 1000).toFixed(2)} км, ${(path.time / 60000).toFixed(1)} мин`;
+                    routeDiv.addEventListener('click', () => highlightRoute(index));
+                    document.getElementById("routeInfo").appendChild(routeDiv);
                 });
 
-                document.getElementById('routeInfo').innerText = info.join('\n');
-                document.getElementById('sidebar').classList.add('open');
+                document.getElementById("sidebar").classList.add("open");
+                updateRouteHighlight(0);
             });
+    }
+
+    function highlightRoute(index) {
+        updateRouteHighlight(index);
+        const bounds = routeLayers[index].getBounds();
+        map.fitBounds(bounds);
+    }
+
+    function updateRouteHighlight(index) {
+        activeRouteIndex = index;
+        routeLayers.forEach((layer, i) => {
+            layer.setStyle({
+                opacity: i === index ? 1.0 : 0.4,
+                weight: i === index ? 7 : 5
+            });
+        });
+
+        document.querySelectorAll(".route-entry").forEach((el, i) => {
+            el.classList.toggle("active", i === index);
+        });
     }
 
     function clearRoutes() {
         routeLayers.forEach(r => map.removeLayer(r));
         routeLayers = [];
+        document.getElementById("routeInfo").innerHTML = '';
     }
 
     function clearMap() {
         clearRoutes();
         markerLayer.clearLayers();
         routePoints = [];
-        document.getElementById('routeInfo').innerText = "Выберите начальную и конечную точку на карте.";
+        activeRouteIndex = -1;
+        document.getElementById("routeInfo").innerText = "Выберите начальную и конечную точку.";
     }
 
-    // Sidebar toggle
-    document.getElementById('sidebar-toggle').addEventListener('click', () => {
-        document.getElementById('sidebar').classList.add('open');
-    });
-
-    document.getElementById('sidebar-close').addEventListener('click', () => {
-        document.getElementById('sidebar').classList.remove('open');
+    // Toggle sidebar
+    document.getElementById("sidebar-toggle").addEventListener("click", () => {
+        document.getElementById("sidebar").classList.toggle("open");
+        // движем кнопку в зависимости от состояния
+        if (document.getElementById("sidebar").classList.contains("open")) {
+            document.getElementById("sidebar-toggle").style.left = "343px";
+        } else {
+            document.getElementById("sidebar-toggle").style.left = "0";
+        }
     });
 </script>
 

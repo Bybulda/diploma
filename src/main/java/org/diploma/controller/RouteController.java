@@ -28,10 +28,10 @@ public class RouteController {
         String url = GRAPHOPPER_URL + "?point=" + lat1 + "," + lon1 +
                 "&point=" + lat2 + "," + lon2 +
                 "&points_encoded=false" +
-                "&profile=car" +
+                "&profile=car" + "&algorithm=alternative_route" +
                 "&alternative_route.max_paths=3" +
-                "&alternative_route.max_weight_factor=2" +
-                "&alternative_route.max_share_factor=0.9"; // <-- ВАЖНО
+                "&alternative_route.max_weight_factor=1.4" +
+                "&alternative_route.max_share_factor=1.0" + "&debug=true"; // <-- ВАЖНО
 
         // Получаем ответ от GraphHopper
         String response = restTemplate.getForObject(url, String.class);
