@@ -111,17 +111,21 @@
 <div id="sidebar-toggle">≡</div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script>
+<!-- Обновлённый фрагмент <script> -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script th:inline="none">
     const map = L.map('map').setView([55.7558, 37.6173], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     let routePoints = [];
+    let blockedPoints = [];
     let markerLayer = L.layerGroup().addTo(map);
+    let blockedLayer = L.layerGroup().addTo(map);
     let routeLayers = [];
     let activeRouteIndex = -1;
 
     map.on('click', e => {
-        if (e.originalEvent.cancelBubble) return; // ⛔ не реагируем, если событие уже обработано
+        if (e.originalEvent.cancelBubble) return;
 
         if (routePoints.length < 2) {
             routePoints.push([e.latlng.lat, e.latlng.lng]);
@@ -133,7 +137,15 @@
         }
     });
 
-
+    map.on('contextmenu', e => {
+        const latlng = [e.latlng.lat, e.latlng.lng];
+        blockedPoints.push(latlng);
+        L.circle(e.latlng, {
+            radius: 40,
+            color: 'red',
+            fillOpacity: 0.4
+        }).addTo(blockedLayer).bindPopup("Блокировка");
+    });
 
     function buildRoute() {
         if (routePoints.length < 2) {
@@ -141,17 +153,31 @@
             return;
         }
 
-        const [a, b] = routePoints;
-        const url = `/route?lat1=${a[0]}&lon1=${a[1]}&lat2=${b[0]}&lon2=${b[1]}` +
-            `&profile=car&points_encoded=false&algorithm=alternative_route` +
-            `&alternative_route.max_paths=3&alternative_route.max_weight_factor=2&alternative_route.max_share_factor=0.9`;
+        const [start, end] = routePoints;
 
-        fetch(url)
+        const polygons = blockedPoints.map(center => {
+            return circleToPolygon(center, 40); // возвращает List<List<Double>> как кольцо
+        });
+
+        const requestBody = {
+            points: [
+                [start[1], start[0]], // [lng, lat]
+                [end[1], end[0]]
+            ],
+            polygons: polygons.length > 0 ? polygons.map(ring => [ring]) : [] // List<List<List<Double>>>
+        };
+
+        console.log("JSON для отправки:", JSON.stringify(requestBody, null, 2));
+
+        fetch("/route", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody)
+        })
             .then(r => r.json())
             .then(data => {
                 clearRoutes();
                 const colors = ['blue', 'green', 'orange'];
-
                 data.paths.forEach((path, index) => {
                     const latlngs = path.points.coordinates.map(([lng, lat]) => [lat, lng]);
                     const polyline = L.polyline(latlngs, {
@@ -160,9 +186,8 @@
                         opacity: 0.5
                     }).addTo(map);
 
-                    // polyline.on('click', () => highlightRoute(index));
                     polyline.on('click', (e) => {
-                        e.originalEvent.cancelBubble = true; // ⛔ отменяем всплытие события
+                        e.originalEvent.cancelBubble = true;
                         highlightRoute(index);
                     });
                     routeLayers.push(polyline);
@@ -178,6 +203,9 @@
                 updateRouteHighlight(0);
             });
     }
+
+
+
 
     function highlightRoute(index) {
         updateRouteHighlight(index);
@@ -208,22 +236,35 @@
     function clearMap() {
         clearRoutes();
         markerLayer.clearLayers();
+        blockedLayer.clearLayers();
         routePoints = [];
+        blockedPoints = [];
         activeRouteIndex = -1;
         document.getElementById("routeInfo").innerText = "Выберите начальную и конечную точку.";
     }
 
+    function circleToPolygon(center, radius, sides = 12) {
+        const [lat, lng] = center;
+        const coords = [];
+        const angleStep = 360 / sides;
+        for (let i = 0; i <= sides; i++) {
+            const angle = angleStep * i;
+            const dx = radius * Math.cos(angle * Math.PI / 180) / 111320;
+            const dy = radius * Math.sin(angle * Math.PI / 180) / (40075000 * Math.cos(lat * Math.PI / 180) / 360);
+            coords.push([lng + dx, lat + dy]);
+        }
+        return coords;
+    }
+
+
     // Toggle sidebar
     document.getElementById("sidebar-toggle").addEventListener("click", () => {
         document.getElementById("sidebar").classList.toggle("open");
-        // движем кнопку в зависимости от состояния
-        if (document.getElementById("sidebar").classList.contains("open")) {
-            document.getElementById("sidebar-toggle").style.left = "343px";
-        } else {
-            document.getElementById("sidebar-toggle").style.left = "0";
-        }
+        document.getElementById("sidebar-toggle").style.left =
+            document.getElementById("sidebar").classList.contains("open") ? "343px" : "0";
     });
 </script>
+
 
 </body>
 </html>
