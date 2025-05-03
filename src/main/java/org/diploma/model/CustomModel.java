@@ -1,5 +1,6 @@
 package org.diploma.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,6 +22,7 @@ public class CustomModel {
     @JsonProperty("alternative_route")
     private AlternativeRoute alternativeRoute;
     @JsonProperty("custom_model")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private InModel customModel;
 
 

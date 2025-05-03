@@ -15,12 +15,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.client.RestTemplate;
 
+import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
 @Controller
 public class RouteController {
-    private final ObjectMapper mapper = new ObjectMapper();
     private final NewRequestMapper requestMapper = new NewRequestMapper();
 
     @GetMapping("/")
@@ -36,17 +37,27 @@ public class RouteController {
         String url = GRAPHOPPER_URL;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-
+        InModel model = null;
         AlternativeRoute rout = requestMapper.getAlternativeRoute(3, 2.0, 0.9);
-        Geometry geometry = requestMapper.getGeometry("Polygon", body.polygons().get(0));
-        NewFeature feature = requestMapper.getFeature("Feature", "blocked0", geometry);
-        Areas areas = requestMapper.getAreas("FeatureCollection", List.of(feature));
-        PriorityF priority = requestMapper.getPriority("in_blocked0", 0.0);
-        InModel model = requestMapper.getInModel(List.of(priority), areas);
+        if(body.polygons() != null && !body.polygons().isEmpty()){
+            List<NewFeature> newFeatureList = new ArrayList<>();
+            List<PriorityF> newPriorityList = new ArrayList<>();
+            int i = 0;
+            for(List<List<List<Double>>> p : body.polygons()){
+                Geometry pGeometry = requestMapper.getGeometry("Polygon", p);
+                NewFeature feature = requestMapper.getFeature("Feature", "blocked" + i, pGeometry);
+                newFeatureList.add(feature);
+                newPriorityList.add(requestMapper.getPriority("in_blocked" + i, 0.0));
+                i++;
+            }
+            Areas areas = requestMapper.getAreas("FeatureCollection", newFeatureList);
+            model = requestMapper.getInModel(newPriorityList, areas);
+        }
+
         CustomModel cstMd = requestMapper.createCustomModel(body.points(),
                 "car", false, "alternative_route", rout, model);
         try {
-            String jsonRequest = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cstMd);
+            String jsonRequest = requestMapper.getJsonModel(cstMd);
             HttpEntity<String> entity = new HttpEntity<>(jsonRequest, headers);
             System.out.println(entity);
             String response = restTemplate.postForObject(url, entity, String.class);
@@ -56,27 +67,5 @@ public class RouteController {
             throw new RuntimeException(e);
         }
     }
-
-//    @GetMapping(value = "/json", produces = MediaType.APPLICATION_JSON_VALUE)
-//    public ResponseEntity<String> getJson(@RequestBody String body) {
-//        AlternativeRoute rout = requestMapper.getAlternativeRoute(3, 2.0, 0.9);
-//        Geometry geometry = requestMapper.getGeometry("Polygon",
-//                List.of(List.of(
-//                        List.of(37.617, 55.751), List.of(37.618, 55.751),
-//                        List.of(37.618, 55.752), List.of(37.617, 55.752),
-//                        List.of(37.617, 55.751))));
-//        NewFeature feature = requestMapper.getFeature("Feature", "blocked0", geometry);
-//        Areas areas = requestMapper.getAreas("FeatureCollection", List.of(feature));
-//        PriorityF priority = requestMapper.getPriority("in_blocked0", 0.0);
-//        CustomModel cstMd = requestMapper.createCustomModel(List.of(List.of(37.615, 55.75), List.of(37.625, 55.76)),
-//                "car", false, "alternative_route", rout, areas, List.of(priority));
-//        try {
-//            String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cstMd);
-//            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
-//        } catch (JsonProcessingException e) {
-//            throw new RuntimeException(e);
-//        }
-//
-//    }
 
 }

@@ -1,10 +1,14 @@
 package org.diploma.mapper;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.diploma.model.*;
 
 import java.util.List;
 
 public class NewRequestMapper {
+
+    private final ObjectMapper mapper = new ObjectMapper();
 
     public CustomModel createCustomModel(List<List<Double>> pt, String prof, Boolean pt_enc, String algo, AlternativeRoute rt, InModel model) {
         return new CustomModel(pt, prof, pt_enc, algo, rt, model);
@@ -36,5 +40,9 @@ public class NewRequestMapper {
 
     public InModel getInModel(List<PriorityF> priorityFS, Areas area){
         return new InModel(priorityFS, area);
+    }
+
+    public String getJsonModel(CustomModel cm) throws JsonProcessingException {
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cm);
     }
 }
