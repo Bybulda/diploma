@@ -2,7 +2,7 @@ package org.diploma.mapper;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.diploma.model.*;
+import org.diploma.DTO.*;
 
 import java.util.List;
 

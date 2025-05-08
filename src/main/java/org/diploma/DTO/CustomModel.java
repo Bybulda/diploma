@@ -1,4 +1,4 @@
-package org.diploma.model;
+package org.diploma.DTO;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;

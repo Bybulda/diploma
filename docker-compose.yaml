@@ -10,3 +10,19 @@ services:
       - "8989:8989"
     volumes:
       - ./graphhopper:/graphhopper
+
+  postgres:
+    image: postgres:15
+    container_name: transport_db
+    environment:
+      POSTGRES_DB: transport
+      POSTGRES_USER: transportUser
+      POSTGRES_PASSWORD: transportPassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+
+volumes:
+  pgdata:
