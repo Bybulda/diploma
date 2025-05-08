@@ -1,12 +1,12 @@
 CREATE TABLE IF NOT EXISTS users (
-                                     id SERIAL PRIMARY KEY,
+                                     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                                      email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL
     );
 
 CREATE TABLE IF NOT EXISTS routes (
-                                      id SERIAL PRIMARY KEY,
-                                      user_id INTEGER REFERENCES users(id),
+                                      id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                                      user_id BIGINT REFERENCES users(id),
     origin_lat DOUBLE PRECISION,
     origin_lon DOUBLE PRECISION,
     destination_lat DOUBLE PRECISION,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS routes (
     );
 
 CREATE TABLE IF NOT EXISTS blocked_areas (
-                                             id SERIAL PRIMARY KEY,
-                                             route_id INTEGER REFERENCES routes(id),
+                                             id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                                             route_id BIGINT REFERENCES routes(id),
     polygon_coordinates_json TEXT NOT NULL
     );

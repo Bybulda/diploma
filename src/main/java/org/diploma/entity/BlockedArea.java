@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class BlockedArea {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "route_id")

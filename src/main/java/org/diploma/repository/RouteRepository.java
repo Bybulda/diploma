@@ -11,7 +11,6 @@ import java.util.Optional;
 @Repository
 public interface RouteRepository extends JpaRepository<Route, Long> {
     List<Route> findByUserId(Long userId);
-    Optional<Route> findByRouteId(Long routeId);
 
     List<Route> findByUser(User user);
 }

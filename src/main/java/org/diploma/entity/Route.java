@@ -18,17 +18,22 @@ import java.util.List;
 public class Route {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Column(name = "timestamp")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "origin_lat")
     private double startLat;
+    @Column(name = "origin_lon")
     private double startLng;
+    @Column(name = "destination_lat")
     private double endLat;
+    @Column(name = "destination_lon")
     private double endLng;
 
     @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -59,6 +59,6 @@ public class RouteService {
     }
 
     public Optional<Route> findRouteById(Long routeId) {
-        return routeRepository.findByRouteId(routeId);
+        return routeRepository.findById(routeId);
     }
 }
