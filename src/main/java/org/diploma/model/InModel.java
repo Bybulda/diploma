@@ -1,4 +1,4 @@
-package org.diploma.DTO;
+package org.diploma.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

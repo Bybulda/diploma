@@ -3,7 +3,7 @@ package org.diploma.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.diploma.mapper.NewRequestMapper;
-import org.diploma.DTO.*;
+import org.diploma.model.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;

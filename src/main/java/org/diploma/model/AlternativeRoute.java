@@ -1,4 +1,4 @@
-package org.diploma.DTO;
+package org.diploma.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
