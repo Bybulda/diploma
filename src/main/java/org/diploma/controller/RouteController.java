@@ -36,7 +36,7 @@ public class RouteController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         InModel model = null;
-        AlternativeRoute rout = requestMapper.getAlternativeRoute(3, 2.0, 0.9);
+        AlternativeRoute rout = requestMapper.getAlternativeRoute(10, 2.0, 1.5);
         if(body.polygons() != null && !body.polygons().isEmpty()){
             List<NewFeature> newFeatureList = new ArrayList<>();
             List<PriorityF> newPriorityList = new ArrayList<>();
