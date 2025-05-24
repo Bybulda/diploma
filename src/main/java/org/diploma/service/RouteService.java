@@ -31,6 +31,10 @@ public class RouteService {
         return userRepository.findByEmail(email);
     }
 
+    public Optional<User> findUserByEmailAndPassword(String email, String password) {
+        return userRepository.findByEmailAndPasswordHash(email, password);
+    }
+
     public Route saveRoute(User user, double lat1, double lon1, double lat2, double lon2) {
         Route route = new Route();
         route.setUser(user);

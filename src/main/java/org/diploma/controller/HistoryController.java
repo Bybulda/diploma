@@ -1,14 +1,19 @@
 package org.diploma.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 
 import org.diploma.entity.BlockedArea;
 import org.diploma.entity.Route;
 import org.diploma.entity.User;
+import org.diploma.model.RouteResponse;
+import org.diploma.model.SaveRouteRequest;
 import org.diploma.service.RouteService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,11 +34,30 @@ public class HistoryController {
         return ResponseEntity.ok(newUser);
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<User> login(@RequestParam String email, @RequestParam String password) {
+        if (routeService.findUserByEmailAndPassword(email, password).isPresent()) {
+            return ResponseEntity.ok(routeService.findUserByEmail(email).get());
+        }
+        return ResponseEntity.badRequest().build();
+    }
+
     @GetMapping("/routes")
-    public ResponseEntity<List<Route>> getRoutes(@RequestParam String email) {
+    public ResponseEntity<List<RouteResponse>> getRoutes(@RequestParam String email) {
         Optional<User> userOpt = routeService.findUserByEmail(email);
-        return userOpt.map(user -> ResponseEntity.ok(routeService.getUserRoutes(user)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        if (userOpt.isPresent()) {
+            List<Route> routes = routeService.getUserRoutes(userOpt.get());
+            if (!routes.isEmpty()) {
+                List<RouteResponse> routeResponses = new ArrayList<>();
+                for (Route route : routes) {
+                    RouteResponse response = new RouteResponse(route.getId(), route.getCreatedAt(),
+                            route.getStartLat(), route.getEndLng(), route.getStartLng(), route.getEndLng());
+                    routeResponses.add(response);
+                }
+                return ResponseEntity.ok(routeResponses);
+            }
+        }
+        return ResponseEntity.badRequest().build();
     }
 
     @GetMapping("/blocked/{routeId}")
@@ -44,19 +68,16 @@ public class HistoryController {
     }
 
     @PostMapping("/save")
-    public ResponseEntity<Route> saveRoute(
-            @RequestParam String email,
-            @RequestParam double lat1,
-            @RequestParam double lon1,
-            @RequestParam double lat2,
-            @RequestParam double lon2,
-            @RequestBody List<String> polygonsJson
+    public ResponseEntity<RouteResponse> saveRoute(
+            @RequestBody SaveRouteRequest saveRouteRequest
     ) {
-        Optional<User> userOpt = routeService.findUserByEmail(email);
+        Optional<User> userOpt = routeService.findUserByEmail(saveRouteRequest.email());
         if (userOpt.isEmpty()) return ResponseEntity.badRequest().build();
 
-        Route route = routeService.saveRoute(userOpt.get(), lat1, lon1, lat2, lon2);
-        routeService.saveBlockedAreas(route, polygonsJson);
-        return ResponseEntity.ok(route);
+        Route route = routeService.saveRoute(userOpt.get(),
+                saveRouteRequest.lat1(), saveRouteRequest.lat2(), saveRouteRequest.lon1(), saveRouteRequest.lon2());
+        routeService.saveBlockedAreas(route, saveRouteRequest.polygons());
+        return ResponseEntity.ok(new RouteResponse(route.getId(), route.getCreatedAt(),
+                route.getStartLat(), route.getEndLng(), route.getStartLng(), route.getEndLng()));
     }
 }

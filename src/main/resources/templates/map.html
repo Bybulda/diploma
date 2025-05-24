@@ -5,7 +5,6 @@
     <title>Интерактивная карта</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="/styles.css" />
-
 </head>
 <body>
 
@@ -19,6 +18,7 @@
         <button onclick="clearMap()">Очистить карту</button>
     </div>
 </div>
+
 <!-- Аватар и меню -->
 <div id="user-avatar"></div>
 
@@ -34,26 +34,12 @@
     </div>
 </div>
 
-
-<!-- Диалоги -->
-<!--<div id="auth-dialog" class="dialog hidden">-->
-<!--    <h3 id="auth-title">Вход</h3>-->
-<!--    <input type="text" id="auth-email" placeholder="Email">-->
-<!--    <input type="password" id="auth-password" placeholder="Пароль">-->
-<!--    <button onclick="submitAuth()">Продолжить</button>-->
-<!--</div>-->
-
-
-<!--<div id="history-dialog" class="dialog hidden">-->
-<!--    <h3>История маршрутов</h3>-->
-<!--    <ul id="history-list"></ul>-->
-<!--</div>-->
 <div id="auth-dialog" class="dialog hidden">
     <button class="close-btn" onclick="closeAuthDialog()">×</button>
     <h3 id="auth-title">Вход</h3>
     <input type="text" id="auth-email" placeholder="Email">
     <input type="password" id="auth-password" placeholder="Пароль">
-    <button onclick="submitAuth()">Продолжить</button>
+    <button id="auth-submit-btn" onclick="submitAuth()">Войти</button>
 </div>
 
 <div id="history-dialog" class="dialog hidden">
@@ -61,8 +47,6 @@
     <h3>История маршрутов</h3>
     <ul id="history-list"></ul>
 </div>
-
-
 
 <div id="sidebar-toggle">≡</div>
 
