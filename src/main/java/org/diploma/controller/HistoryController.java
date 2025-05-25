@@ -51,7 +51,7 @@ public class HistoryController {
                 List<RouteResponse> routeResponses = new ArrayList<>();
                 for (Route route : routes) {
                     RouteResponse response = new RouteResponse(route.getId(), route.getCreatedAt(),
-                            route.getStartLat(), route.getEndLng(), route.getStartLng(), route.getEndLng());
+                            route.getStartLat(), route.getStartLng(), route.getEndLat(), route.getEndLng());
                     routeResponses.add(response);
                 }
                 return ResponseEntity.ok(routeResponses);
@@ -78,6 +78,6 @@ public class HistoryController {
                 saveRouteRequest.lat1(), saveRouteRequest.lat2(), saveRouteRequest.lon1(), saveRouteRequest.lon2());
         routeService.saveBlockedAreas(route, saveRouteRequest.polygons());
         return ResponseEntity.ok(new RouteResponse(route.getId(), route.getCreatedAt(),
-                route.getStartLat(), route.getEndLng(), route.getStartLng(), route.getEndLng()));
+                route.getStartLat(), route.getStartLng(), route.getEndLat(), route.getEndLng()));
     }
 }

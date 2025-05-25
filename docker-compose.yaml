@@ -1,3 +1,31 @@
+#version: '3.8'
+#
+#services:
+#  graphhopper:
+#    build:
+#      context: ./graphhopper
+#      dockerfile: Dockerfile
+#    container_name: graphhopper
+#    ports:
+#      - "8989:8989"
+#    volumes:
+#      - ./graphhopper:/graphhopper
+#
+#  postgres:
+#    image: postgres:15
+#    container_name: transport_db
+#    environment:
+#      POSTGRES_DB: transport
+#      POSTGRES_USER: transportUser
+#      POSTGRES_PASSWORD: transportPassword
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - pgdata:/var/lib/postgresql/data
+#      - ./init:/docker-entrypoint-initdb.d
+#
+#volumes:
+#  pgdata:
 version: '3.8'
 
 services:
@@ -10,6 +38,11 @@ services:
       - "8989:8989"
     volumes:
       - ./graphhopper:/graphhopper
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres:
     image: postgres:15
@@ -23,6 +56,28 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transportUser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  springapp:
+    build:
+      context: ./
+    container_name: diploma_app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/transport
+      SPRING_DATASOURCE_USERNAME: transportUser
+      SPRING_DATASOURCE_PASSWORD: transportPassword
+    depends_on:
+      postgres:
+        condition: service_healthy
+      graphhopper:
+        condition: service_healthy
+    restart: on-failure
 
 volumes:
   pgdata:

@@ -28,7 +28,7 @@ public class RouteController {
     }
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private static final String GRAPHOPPER_URL = "http://localhost:8989/route";
+    private static final String GRAPHOPPER_URL = "http://graphhopper:8989/route";
 
     @PostMapping("/route")
     public ResponseEntity<String> getRoute(@RequestBody RouteRequest body) {

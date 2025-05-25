@@ -31,7 +31,7 @@ map.on('contextmenu', e => {
     }).addTo(blockedLayer).bindPopup("Блокировка");
 });
 
-async function buildRoute() {
+async function buildRoute(fromHistory = false) {
     if (routePoints.length < 2) {
         alert("Выберите 2 точки на карте.");
         return;
@@ -86,7 +86,9 @@ async function buildRoute() {
             document.getElementById("sidebar").classList.add("open");
             updateRouteHighlight(0);
         });
-    await saveRouteToHistory();
+    if (!fromHistory){
+        await saveRouteToHistory();
+    }
 }
 
 
@@ -263,8 +265,8 @@ async function saveRouteToHistory() {
             body: JSON.stringify({
                 email: userEmail,
                 lat1: start[0],
-                lon1: start[1],
-                lat2: end[0],
+                lon1: end[0],
+                lat2: start[1],
                 lon2: end[1],
                 polygons: polygons
             })
@@ -338,14 +340,23 @@ async function loadHistory(routeId) {
                 .openPopup();
         });
 
-        console.debug(blockedAreas)
+        console.log(blockedAreas)
+        console.log(blockedResponse)
         blockedAreas.forEach(area => {
-            const center = JSON.parse(area.polygon)[0];
-            L.circle(center, { radius: 40, color: 'red' }).addTo(blockedLayer);
+            const polygon = JSON.parse(area.polygonCoordinatesJson);
+            const latlngs = polygon.map(([lng, lat]) => [lat, lng]);
+
+            const centerLngLat = polygon[0];
+            blockedPoints.push([centerLngLat[1], centerLngLat[0]]);
+
+            L.polygon(latlngs, {
+                color: 'red',
+                fillOpacity: 0.4
+            }).addTo(blockedLayer);
         });
 
 
-        await buildRoute();
+        await buildRoute(true);
         document.getElementById('history-dialog').classList.add('hidden');
     } catch (error) {
         console.error(error);
